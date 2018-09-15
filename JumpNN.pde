@@ -15,31 +15,53 @@ destroy obstacle when off screen
 
 public class MyRunnable implements Runnable 
 {
-  //player pl;
+  player pl;
+  
+  
 
-   public MyRunnable() 
+   public MyRunnable(player pl) 
    {
-      //this.pl = pl;
+      this.pl = pl;
    }
    
    public void run()
    {
+     int counter = 0;
+     while(pl.alive)
+     {
+       counter ++;
+       if (counter >= 100)
+       {
+         counter = 0;
+        try 
+        {
+          Thread.sleep(1);
+        } 
+        catch (InterruptedException e) 
+        {
+          e.printStackTrace();
+        }
+       }
+      if (pl.active)
+      {
+        //println("running");
+        pl.doWork();
+
+        float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
+        if (obstacles.size() != 0) dists[0] = calcDist(pl, obstacles.get(0));
+        
+        pl.setNNInput(dists);
+        pl.br.doCalc();
+        
+        if (pl.shouldJump()) pl.up = -1;
+        else pl.up = 0;
+        
+        pl.active = false;
+        //println("finished running");
+      }
+     }
      
    }
-
-   /*public void run2() 
-   {
-     pl.doWork();
-
-    float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
-    dists[0] = calcDist(pl, obstacles.get(0));
-    
-    pl.setNNInput(dists);
-    pl.br.doCalc();
-    
-    if (pl.shouldJump()) pl.up = -1;
-    else pl.up = 0;
-   }*/
 }
   
   
@@ -75,9 +97,13 @@ class obstacle
   {
    println(x + ":" + y + ":"); 
   }
-  void doDraw()
+  void doWork()
   {
     x -= speed;
+  }
+  void doDraw()
+  {
+    
     //ellipse(x, y, 10, 10);
     fill(255);
     rect(x, y - sizey + 10, sizex, sizey);
@@ -87,6 +113,8 @@ class obstacle
 
 class player
 {
+  boolean active = false;
+  boolean alive = true;
   int inputNodes = 1;
   int outputNodes = 1;
   
@@ -95,6 +123,8 @@ class player
   
   int xPadding = 50;
   int yPadding = 50;
+  Thread thread;
+  
 
   Brain br;
   
@@ -114,6 +144,7 @@ class player
     this.b = b;
     inputLayer = br.getInput();
     outputLayer = br.getOutput();
+    this.createThread();
   }
   
   
@@ -130,11 +161,13 @@ class player
     this.b = b;
     inputLayer = br.getInput();
     outputLayer = br.getOutput();
+    this.createThread();
   }
   
   
   player(player old)
   {
+    
     this.br = old.br.deepCopy();
     this.br.evolve();
     this.posx = old.posx;
@@ -147,6 +180,14 @@ class player
     
     inputLayer = br.getInput();
     outputLayer = br.getOutput();
+    this.createThread();
+  }
+  
+  void revive()
+  {
+   if (this.alive) println("==========================Player was alive=========================");
+   this.alive = true;
+   this.createThread();
   }
   
   void doDeepCopy()
@@ -155,6 +196,14 @@ class player
     br = br2;
     //println("Copied brain!");
   }
+  
+  void createThread()
+  {
+   Runnable r = new MyRunnable(this); //create the runnable and pass in the player reference
+    thread = new Thread(r); //make it a threads
+    thread.start(); //star the thread 
+  }
+
   
   
   float posy, posx, velx, vely, jumpSpeed, walkSpeed, up;
@@ -240,6 +289,8 @@ class player
 
 boolean checkCollision(player p, obstacle o)
 {
+  //boolean tmp = false;
+  //if (!tmp) return false;
   //check for player in obstacle
   if (o.x <= p.posx && p.posx <= o.x + o.sizex) //left side
   {
@@ -321,19 +372,12 @@ int counter = 0;
 int numPlayers = 100;
 
 int fr = 60;
+Thread[] threads;
 
 void setup()
 {
   size(800, 800);
   frameRate(fr);
-  
-  /*oldGuy = new SideJumper();
-  oldGuy.image = loadImage("player.png");
-  oldGuy.position = new PVector(400, ground);
-  oldGuy.direction = 1;
-  oldGuy.velocity = new PVector(0, 0);
-  oldGuy.jumpSpeed = 10;
-  oldGuy.walkSpeed = 4;*/
   
   ob = new obstacle(width,height -20, 2.5, 20);
   obstacles.add(ob);
@@ -344,8 +388,21 @@ void setup()
    population.add(tmp);
   }
   
+  mill = nanoTime();
   
-  thread("func1");
+  /*threads = new Thread[100]; //we need to keep track of the threads to join them later
+  for (int i = 0; i < 100; i++) //a thread for each player, spread out the calculations
+  {
+    Runnable r = new MyRunnable(population.get(i)); //create the runnable and pass in the player reference
+    //Runnable r = new MyRunnable();
+    threads[i] = new Thread(r); //make it a threads
+    threads[i].start(); //star the thread
+   
+  }
+  timingDebug("made threads", mill);*/
+  
+  
+  //thread("func1");
   
 }
 
@@ -375,6 +432,7 @@ boolean show = false;
 boolean turbo = false;
 boolean showOb = true;
 boolean showPl = true;
+boolean showT = true;
 
 
 
@@ -409,11 +467,11 @@ void draw()
   mill = nanoTime();
   
   background(0);
-  drawText(generation +"", 50, 50);
-  drawText(fr +"", 100, 50);
+  if(showT) drawText(generation +"", 50, 50);
+  if(showT) drawText(fr +"", 100, 50);
   drawText(frameRate +"", 200, 50);
-  drawText(turbo +"", 10, 50);
-  drawText(population.size() + "", 25, 25);
+  if(showT) drawText(turbo +"", 10, 50);
+  if(showT) drawText(population.size() + "", 25, 25);
   
   timingDebug("drawing text", mill);
   
@@ -429,24 +487,21 @@ void draw()
   
   //===========================split for loop============================
   
-  mill = nanoTime();
-  
-  /*Thread[] threads = new Thread[100]; //we need to keep track of the threads to join them later
-  for (int i = 0; i < 100; i++) //a thread for each player, spread out the calculations
+   mill = nanoTime();
+
+  for (player pl: population)
   {
-    //Runnable r = new MyRunnable(population.get(i)); //create the runnable and pass in the player reference
-    Runnable r = new MyRunnable();
-    threads[i] = new Thread(r); //make it a threads
-    threads[i].start(); //star the thread
+    pl.active = true;
   }
-  timingDebug("made threads", mill);
   
-  mill = nanoTime();
+  
+  
+ /* mill = nanoTime();
   for (int i = 0; i < population.size(); i++)
   {
     try 
     {
-      threads[i].join(); //wait for all threads to finish
+      //threads[i].join(); //wait for all threads to finish
     } 
     catch (InterruptedException e) 
     {
@@ -480,6 +535,7 @@ void draw()
   
   for (player pl: population)//draw loop
   {
+    //pl.active = true;
     
     if (showPl) pl.doDraw();
     if (show) pl.br.doDraw();
@@ -506,6 +562,7 @@ void draw()
     {
       if (checkCollision(tmp, o))
       {
+        tmp.alive = false;
         graveYard.add(tmp);
         population.remove(i);
         break;
@@ -522,6 +579,7 @@ void draw()
     for (int i = graveYard.size()-1; i > graveYard.size() - 11; i--)
     {
       player tmp = graveYard.get(i); 
+      tmp.revive();
       population.add(tmp); //we keep the top 10 fittest
       for (int j = 0; j < 9; j++) //Then we create 9 additional players mutated from the original
       {
@@ -536,6 +594,7 @@ void draw()
   for (int i = obstacles.size()-1; i >= 0; i--)
   {
     obstacle tmp = obstacles.get(i);
+    tmp.doWork();
     if (showOb) tmp.doDraw();
     if (tmp.x <= 0) obstacles.remove(i); //if this obstacle is off the screen, it doesnt matter
   }
@@ -597,6 +656,10 @@ void updateOldGuy()
   popMatrix();
 }
 
+boolean isSlow = false;
+
+
+
 void keyPressed()
 {
   /*if (key == 'd')
@@ -647,6 +710,35 @@ void keyPressed()
    player tmp =  new player(population.get(0));
    population.add(tmp);
   }
+  if(key == 'l')
+  {
+    showOb = !showOb;
+    showPl = !showPl;
+    //showT = !showT;
+  }
+  if (key == 'm')
+  {
+   debugThreads(); 
+  }
+  if (key == 'k')
+  {
+    if(isSlow) 
+    {
+      isSlow = false;
+      println("framerate " + frameRate);
+      frameRate(fr);
+    }
+    else 
+    {
+      isSlow = true;
+      println("framerate " + frameRate);
+      frameRate(1);
+    }
+  }
+  if (key == 'n')
+  {
+   doGeneration_nograveyard(); 
+  }
 }
 
 void keyReleased()
@@ -656,11 +748,26 @@ void keyReleased()
   
 }
 
+void debugThreads()
+{
+  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+  for (int i = 0; i < population.size(); i++)
+  {
+    String t = "Thread " + i + " ";
+     t += (population.get(0).thread.isAlive()) ? "Running" : "Not Running";
+     //if (!population.get(0).thread.isAlive()) population.get(0).thread.start();
+     println(t);
+  }
+  
+  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+  
+}
+
 void baseFunc(int num)
 {
   for(int i = 0; (num-1)*10 < num*10; i++)
   {
-    if (i => population.size()) return;
+    if (i >= population.size()) return;
     player pl = population.get(i);
     pl.doWork();
 
@@ -676,75 +783,60 @@ void baseFunc(int num)
 }
 
 
+void doGeneration_graveyard()
+{
+    //obstacles.remove(0); //Remove the obstacle so the players dont die immediently
+    generation++; //we are breeding, so we increment the generation count
+    for (int i = graveYard.size()-1; i > graveYard.size() - 11; i--)
+    {
+      player tmp = graveYard.get(i); 
+      tmp.revive();
+      population.add(tmp); //we keep the top 10 fittest
+      for (int j = 0; j < 9; j++) //Then we create 9 additional players mutated from the original
+      {
+        population.add(new player(tmp));
+      }
+    }
+}
 
-void func1()
+void doGeneration_nograveyard()
 {
-  while(true)
+  
+  if (population.size() == 0) return;
+  
+  int alive = population.size();
+  int tmp = (100 - alive) / population.size();
+  
+  
+  for (int i = 0; i < alive; i ++)
   {
-    println("==========func1=========");
-    baseFunc(1);
+    player p = population.get(i);
+    for (int j = 0; j < tmp; j++)
+    {
+      population.add(new player(p));
+    }
   }
+  graveYard = new ArrayList(); //delete anything in the graveyard.
 }
-void func2()
+
+void doGeneration_somegraveyard()
 {
-  while(true)
+  for (int i = population.size(); i < 10; i++) //
   {
-    baseFunc(2);
+    int end = graveYard.size();
+    player tmp = graveYard.get(end);
+    tmp.revive();
+    population.add(tmp);
+    
   }
-}
-void func3()
-{
-  while(true)
+  println("population size: " + population.size());
+  
+  for (int i = 0; i < population.size(); i++)
   {
-    baseFunc(3);
-  }
-}
-void func4()
-{
-  while(true)
-  {
-    baseFunc(4);
-  }
-}
-void func5()
-{
-  while(true)
-  {
-    baseFunc(5);
-  }
-}
-void func6()
-{
-  while(true)
-  {
-    baseFunc(6);
-  }
-}
-void func7()
-{
-  while(true)
-  {
-    baseFunc(7);
-  }
-}
-void func8()
-{
-  while(true)
-  {
-    baseFunc(8);
-  }
-}
-void func9()
-{
-  while(true)
-  {
-    baseFunc(9);
-  }
-}
-void func10()
-{
-  while(true)
-  {
-    baseFunc(10);
+    player tmp = population.get(i);
+    for (int j = 0; j < 9; j++)
+    {
+      population.add(new player(tmp));
+    }
   }
 }
