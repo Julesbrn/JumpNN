@@ -13,7 +13,34 @@ destroy obstacle when off screen
 
 
 
+public class MyRunnable implements Runnable 
+{
+  //player pl;
 
+   public MyRunnable() 
+   {
+      //this.pl = pl;
+   }
+   
+   public void run()
+   {
+     
+   }
+
+   /*public void run2() 
+   {
+     pl.doWork();
+
+    float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
+    dists[0] = calcDist(pl, obstacles.get(0));
+    
+    pl.setNNInput(dists);
+    pl.br.doCalc();
+    
+    if (pl.shouldJump()) pl.up = -1;
+    else pl.up = 0;
+   }*/
+}
   
   
   
@@ -316,6 +343,10 @@ void setup()
    player tmp =  new player("" + i, 10,700, -1, 0, random(0,255), random(0,255), random(0,255), int(random(1,10)), int(random(1,10)));
    population.add(tmp);
   }
+  
+  
+  thread("func1");
+  
 }
 
 void timingDebug(String info, float mil)
@@ -334,6 +365,7 @@ float nanoTime()
   return System.nanoTime();
 }
 
+
 int generation = 1;
 int next = 0;
 
@@ -341,12 +373,21 @@ float mill = nanoTime();
 float nano = System.nanoTime();
 boolean show = false;
 boolean turbo = false;
-boolean showOb = false;
-boolean showPl = false;
+boolean showOb = true;
+boolean showPl = true;
+
+
+
+
+
 
 
 void draw()
 {
+  
+  
+  
+  
   println("nano: " + (System.nanoTime() - nano));
   nano = System.nanoTime();
   mill = nanoTime();
@@ -389,6 +430,36 @@ void draw()
   //===========================split for loop============================
   
   mill = nanoTime();
+  
+  /*Thread[] threads = new Thread[100]; //we need to keep track of the threads to join them later
+  for (int i = 0; i < 100; i++) //a thread for each player, spread out the calculations
+  {
+    //Runnable r = new MyRunnable(population.get(i)); //create the runnable and pass in the player reference
+    Runnable r = new MyRunnable();
+    threads[i] = new Thread(r); //make it a threads
+    threads[i].start(); //star the thread
+  }
+  timingDebug("made threads", mill);
+  
+  mill = nanoTime();
+  for (int i = 0; i < population.size(); i++)
+  {
+    try 
+    {
+      threads[i].join(); //wait for all threads to finish
+    } 
+    catch (InterruptedException e) 
+    {
+      e.printStackTrace();
+    }
+  }
+  println("threads terminated"); 
+  timingDebug("threads terminated", mill);*/
+  
+  
+  
+  
+  /*
   for (player pl: population)//non draw loop
   {
     pl.doWork();
@@ -402,6 +473,7 @@ void draw()
     if (pl.shouldJump()) pl.up = -1;
     else pl.up = 0;
   }
+  */
   timingDebug("check if they should jump", mill);
   
   
@@ -582,4 +654,97 @@ void keyReleased()
 
   
   
+}
+
+void baseFunc(int num)
+{
+  for(int i = 0; (num-1)*10 < num*10; i++)
+  {
+    if (i => population.size()) return;
+    player pl = population.get(i);
+    pl.doWork();
+
+    float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
+    dists[0] = calcDist(pl, obstacles.get(0));
+    
+    pl.setNNInput(dists);
+    pl.br.doCalc();
+    
+    if (pl.shouldJump()) pl.up = -1;
+    else pl.up = 0;
+  }
+}
+
+
+
+void func1()
+{
+  while(true)
+  {
+    println("==========func1=========");
+    baseFunc(1);
+  }
+}
+void func2()
+{
+  while(true)
+  {
+    baseFunc(2);
+  }
+}
+void func3()
+{
+  while(true)
+  {
+    baseFunc(3);
+  }
+}
+void func4()
+{
+  while(true)
+  {
+    baseFunc(4);
+  }
+}
+void func5()
+{
+  while(true)
+  {
+    baseFunc(5);
+  }
+}
+void func6()
+{
+  while(true)
+  {
+    baseFunc(6);
+  }
+}
+void func7()
+{
+  while(true)
+  {
+    baseFunc(7);
+  }
+}
+void func8()
+{
+  while(true)
+  {
+    baseFunc(8);
+  }
+}
+void func9()
+{
+  while(true)
+  {
+    baseFunc(9);
+  }
+}
+void func10()
+{
+  while(true)
+  {
+    baseFunc(10);
+  }
 }
