@@ -201,6 +201,11 @@ class player
     {
       posy += vely;
     }  
+  }
+  
+  
+  void doDraw()
+  {
     fill(r,g,b);
     rect(posx, posy, 10,10);
   }
@@ -336,6 +341,8 @@ float mill = nanoTime();
 float nano = System.nanoTime();
 boolean show = false;
 boolean turbo = false;
+boolean showOb = false;
+boolean showPl = false;
 
 
 void draw()
@@ -351,7 +358,7 @@ void draw()
   {
     println(counter + ":" + next + " triggered");
    counter = 0;
-   next = int(random(90,190));
+   next = int(random(60,190));
    obstacles.add(new obstacle(width,height -20, 2.5, 50));
    //obstacles.add(new obstacle(width,height -20, 2.5, random(10,50)));
   }
@@ -379,70 +386,32 @@ void draw()
    //println("COLLISION"); 
   }
   
-  mill = nanoTime();
-  /*for (player pl: population)
-  {
-    //if (pl.up == -1) pl.up = 0;
-    //if (random(-10, 100) > 90) pl.up = -1;
-    pl.doWork();
-    
-    //ArrayList<Float> dists = new ArrayList<Float>();
-    float[] dists = new float[obstacles.size()];
-    
-    for (int i = 0; i < obstacles.size(); i ++)
-    {
-      dists[i] = calcDist(pl, obstacles.get(i));
-    }
-    pl.setNNInput(dists);
-    pl.br.doCalc();
-    if (show) pl.br.doDraw();
-    println("shouldjump: " + pl.shouldJump());
-    if (pl.shouldJump()) pl.up = -1;
-    else pl.up = 0;
-  }*/
-  
   //===========================split for loop============================
   
   mill = nanoTime();
-  for (player pl: population)
+  for (player pl: population)//non draw loop
   {
     pl.doWork();
-  }
-  timingDebug("drawing player", mill);
-  
-  mill = nanoTime();
-  for (player pl: population)
-  {
-    float[] dists = new float[1]; //we only care about the closest obstacle
+
+    float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
     dists[0] = calcDist(pl, obstacles.get(0));
+    
     pl.setNNInput(dists);
-  }
-  timingDebug("calculaing distance and inputting into neural network.", mill);
-  
-  mill = nanoTime();
-  for (player pl: population)
-  {
     pl.br.doCalc();
-  }
-  timingDebug("calculating the neural network", mill);
-  
-  mill = nanoTime();
-  if (show)
-  {
-    for (player pl: population)
-    {
-      pl.br.doDraw();
-    }
-  }
-  timingDebug("drew brain: " + show, mill);
-  
-  mill = nanoTime();
-  for (player pl: population)
-  {
+    
     if (pl.shouldJump()) pl.up = -1;
     else pl.up = 0;
   }
   timingDebug("check if they should jump", mill);
+  
+  
+  
+  for (player pl: population)//draw loop
+  {
+    
+    if (showPl) pl.doDraw();
+    if (show) pl.br.doDraw();
+  }
   
   
   
@@ -467,11 +436,6 @@ void draw()
       {
         graveYard.add(tmp);
         population.remove(i);
-        //tmp.die();
-        //tmp.br.evolve();
-        //generation++;
-        //println("evolved" + generation);
-        
         break;
       }
     }
@@ -481,13 +445,13 @@ void draw()
   mill = nanoTime();
   if (population.size() == 0)
   {
-    obstacles.remove(0);
-    generation++;
+    obstacles.remove(0); //Remove the obstacle so the players dont die immediently
+    generation++; //we are breeding, so we increment the generation count
     for (int i = graveYard.size()-1; i > graveYard.size() - 11; i--)
     {
-      player tmp = graveYard.get(i);
-      population.add(tmp);
-      for (int j = 0; j < 9; j++)
+      player tmp = graveYard.get(i); 
+      population.add(tmp); //we keep the top 10 fittest
+      for (int j = 0; j < 9; j++) //Then we create 9 additional players mutated from the original
       {
         population.add(new player(tmp));
       }
@@ -500,9 +464,8 @@ void draw()
   for (int i = obstacles.size()-1; i >= 0; i--)
   {
     obstacle tmp = obstacles.get(i);
-    tmp.doDraw();
-    //tmp.debug();
-    if (tmp.x <= 0) obstacles.remove(i);
+    if (showOb) tmp.doDraw();
+    if (tmp.x <= 0) obstacles.remove(i); //if this obstacle is off the screen, it doesnt matter
   }
   println(obstacles.size() + " obstacles present");
   timingDebug("Drew obstacles", mill);
