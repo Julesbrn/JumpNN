@@ -33,7 +33,7 @@ class SideJumper
 class obstacle
 {
   float x, y, speed;
-  float sizex = 10;
+  float sizex = 20;
   float sizey = 10;
   
   
@@ -63,20 +63,20 @@ class player
   int inputNodes = 1;
   int outputNodes = 1;
   
-  int numNodes = 8;
-  int numLayers = 8;
+  int numNodes = 5;
+  int numLayers = 5;
   
   int xPadding = 50;
   int yPadding = 50;
 
-
-  Brain br = new Brain(numLayers, numNodes, inputNodes, outputNodes, width, height/2, xPadding, yPadding, 1);
+  Brain br;
+  
   Node[] inputLayer;
   Node[] outputLayer;
   
-  
-  player(String name, float posx, float posy, float velx, float vely, float r, float g, float b)
+  player(String name, float posx, float posy, float velx, float vely, float r, float g, float b, int numNodes, int numLayers)
   {
+    br = new Brain(numLayers, numNodes, inputNodes, outputNodes, width, height/2, xPadding, yPadding, 1);
     this.name = name;
     this.posx = posx;
     this.posy = posy;
@@ -87,6 +87,46 @@ class player
     this.b = b;
     inputLayer = br.getInput();
     outputLayer = br.getOutput();
+  }
+  
+  
+  player(String name, float posx, float posy, float velx, float vely, float r, float g, float b)
+  {
+    br = new Brain(numLayers, numNodes, inputNodes, outputNodes, width, height/2, xPadding, yPadding, 1);
+    this.name = name;
+    this.posx = posx;
+    this.posy = posy;
+    this.velx = velx;
+    this.vely = vely;
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    inputLayer = br.getInput();
+    outputLayer = br.getOutput();
+  }
+  
+  
+  player(player old)
+  {
+    this.br = old.br.deepCopy();
+    this.br.evolve();
+    this.posx = old.posx;
+    this.posy = old.posy;
+    this.velx = old.velx;
+    this.vely = old.vely;
+    this.r = old.r;
+    this.g = old.g;
+    this.b = old.b;
+    
+    inputLayer = br.getInput();
+    outputLayer = br.getOutput();
+  }
+  
+  void doDeepCopy()
+  {
+    Brain br2 = br.deepCopy();
+    br = br2;
+    //println("Copied brain!");
   }
   
   
@@ -112,7 +152,7 @@ class player
   
   boolean shouldJump()
   {
-    println("output: " + br.getOutput()[0].val);
+    //println("output: " + br.getOutput()[0].val);
     if (br.getOutput()[0].val >= 0.5) return true;
     else return false;
    //return br.getOutput()[0].val >= 0.5;
@@ -168,6 +208,38 @@ class player
 
 boolean checkCollision(player p, obstacle o)
 {
+  //check for player in obstacle
+  if (o.x <= p.posx && p.posx <= o.x + o.sizex) //left side
+  {
+    if (o.y <= p.posy && p.posy <= o.y + o.sizey) return true; //top
+    if (o.y <= p.posy + p.sizey && p.posy + p.sizey <= o.y + o.sizey) return true; //bottom
+  }
+  
+  if (o.x <= p.posx + p.sizex && p.posx + p.sizex <= o.x + o.sizex) //right side
+  {
+    if (o.y <= p.posy && p.posy <= o.y + o.sizey) return true; //top
+    if (o.y <= p.posy + p.sizey && p.posy + p.sizey <= o.y + o.sizey) return true; //bottom
+  }
+  
+  //check for obstacle in player
+  
+  if (p.posx <= o.x && o.x <= p.posx + p.sizex) //left side
+  {
+    if (p.posy <= o.y && o.y <= p.posy + p.sizey) return true;
+    if (p.posy <= o.y + o.sizey && o.y + o.sizey <= p.posy + p.sizey) return true;
+  }
+  
+  if (p.posx <= o.x + o.sizex && o.x + o.sizex <= p.posx + p.sizex) //right side
+  {
+    if (p.posy <= o.y && o.y <= p.posy + p.sizey) return true;
+    if (p.posy <= o.y + o.sizey && o.y + o.sizey <= p.posy + p.sizey) return true;
+  }
+
+  return false;
+}
+
+boolean checkCollision_old(player p, obstacle o)
+{
   if (p.posx <= o.x && o.x <= p.posx + p.sizex &&
       p.posy <= o.y && o.y <= p.posy + p.sizey)
       {
@@ -210,10 +282,11 @@ float ground = 775;
 obstacle ob;
 player p;
 ArrayList<player> population = new ArrayList<player>();
+ArrayList<player> graveYard = new ArrayList<player>();
 ArrayList<obstacle> obstacles = new ArrayList<obstacle>();
 
 int counter = 0;
-int numPlayers = 1;
+int numPlayers = 100;
 
 int fr = 60;
 
@@ -235,35 +308,41 @@ void setup()
   p = new player("Player", 100,700, -1, 0, 255,255,255);
   for (int i = 0; i < numPlayers; i++)
   {
-   player tmp =  new player("" + i, 10,700, -1, 0, random(0,255), random(0,255), random(0,255));
+   player tmp =  new player("" + i, 10,700, -1, 0, random(0,255), random(0,255), random(0,255), int(random(1,10)), int(random(1,10)));
    population.add(tmp);
   }
 }
 
+void timingDebug(String info, float mil)
+{
+  float now = nanoTime();
+  println(info + " took " + (nanoTime() - mil));
+}
+
 float calcDist(player p, obstacle o)
 {
-  /*
-  float x = p.posx - o.x;
-  float y = p.posy - o.y;
-  
-  float ret = sqrt(x*x + y*y);
-  if (p.posx > o.x) ret *= -1;
-  */
-  
   return  o.x - p.posx;
+}
+
+float nanoTime()
+{
+  return System.nanoTime();
 }
 
 int generation = 1;
 int next = 0;
 
-float mill = millis();
+float mill = nanoTime();
+float nano = System.nanoTime();
 boolean show = false;
 boolean turbo = false;
 
 
 void draw()
 {
-  mill = millis();
+  println("nano: " + (System.nanoTime() - nano));
+  nano = System.nanoTime();
+  mill = nanoTime();
   
   println("framrate: " + frameRate);
   
@@ -276,14 +355,21 @@ void draw()
    obstacles.add(new obstacle(width,height -20, 2.5, 50));
    //obstacles.add(new obstacle(width,height -20, 2.5, random(10,50)));
   }
+  timingDebug("Spawning obstacles", mill);
   
   
+  mill = nanoTime();
   
   background(0);
   drawText(generation +"", 50, 50);
   drawText(fr +"", 100, 50);
   drawText(frameRate +"", 200, 50);
   drawText(turbo +"", 10, 50);
+  drawText(population.size() + "", 25, 25);
+  
+  timingDebug("drawing text", mill);
+  
+  
   fill(0,0,255);
   rect(0, 790, 800,10);
   fill(255);
@@ -293,7 +379,8 @@ void draw()
    //println("COLLISION"); 
   }
   
-  for (player pl: population)
+  mill = nanoTime();
+  /*for (player pl: population)
   {
     //if (pl.up == -1) pl.up = 0;
     //if (random(-10, 100) > 90) pl.up = -1;
@@ -306,25 +393,71 @@ void draw()
     {
       dists[i] = calcDist(pl, obstacles.get(i));
     }
-    
     pl.setNNInput(dists);
-    
-    
-    
-    
-    
     pl.br.doCalc();
     if (show) pl.br.doDraw();
-    
-    
     println("shouldjump: " + pl.shouldJump());
     if (pl.shouldJump()) pl.up = -1;
     else pl.up = 0;
-    
-    
-
-  }
+  }*/
   
+  //===========================split for loop============================
+  
+  mill = nanoTime();
+  for (player pl: population)
+  {
+    pl.doWork();
+  }
+  timingDebug("drawing player", mill);
+  
+  mill = nanoTime();
+  for (player pl: population)
+  {
+    float[] dists = new float[1]; //we only care about the closest obstacle
+    dists[0] = calcDist(pl, obstacles.get(0));
+    pl.setNNInput(dists);
+  }
+  timingDebug("calculaing distance and inputting into neural network.", mill);
+  
+  mill = nanoTime();
+  for (player pl: population)
+  {
+    pl.br.doCalc();
+  }
+  timingDebug("calculating the neural network", mill);
+  
+  mill = nanoTime();
+  if (show)
+  {
+    for (player pl: population)
+    {
+      pl.br.doDraw();
+    }
+  }
+  timingDebug("drew brain: " + show, mill);
+  
+  mill = nanoTime();
+  for (player pl: population)
+  {
+    if (pl.shouldJump()) pl.up = -1;
+    else pl.up = 0;
+  }
+  timingDebug("check if they should jump", mill);
+  
+  
+  
+  //===========================end of split====================
+  
+  
+  
+  
+  
+  
+  
+  timingDebug("main calculation loop", mill);
+  
+  
+  mill = nanoTime();
   for (int i = population.size()-1; i >= 0; i--)
   {
     player tmp = population.get(i);
@@ -332,17 +465,38 @@ void draw()
     {
       if (checkCollision(tmp, o))
       {
-        //population.remove(i);
+        graveYard.add(tmp);
+        population.remove(i);
         //tmp.die();
-        tmp.br.evolve();
-        generation++;
+        //tmp.br.evolve();
+        //generation++;
         //println("evolved" + generation);
         
         break;
       }
     }
   }
+  timingDebug("collision check loop", mill);
   
+  mill = nanoTime();
+  if (population.size() == 0)
+  {
+    obstacles.remove(0);
+    generation++;
+    for (int i = graveYard.size()-1; i > graveYard.size() - 11; i--)
+    {
+      player tmp = graveYard.get(i);
+      population.add(tmp);
+      for (int j = 0; j < 9; j++)
+      {
+        population.add(new player(tmp));
+      }
+    }
+  }
+  timingDebug("everyone died, finished breeding.", mill);
+  
+  
+  mill = nanoTime();
   for (int i = obstacles.size()-1; i >= 0; i--)
   {
     obstacle tmp = obstacles.get(i);
@@ -351,28 +505,9 @@ void draw()
     if (tmp.x <= 0) obstacles.remove(i);
   }
   println(obstacles.size() + " obstacles present");
+  timingDebug("Drew obstacles", mill);
   
-  /*if (up != -1)
-  {
-    
-    if (random(-100, 100) > 99)
-    {
-      up = -1;
-      p.up = -1;
-      println("jumping");
-    }
-    else
-    {
-     //println("not jumping"); 
-    }
-  }
-  else
-  {
-    up = 0;
-    p.up = 0;
-  }*/
-  //p.doWork();
-  println("took: " +( millis() - mill));
+  //println("took: " +( nanoTime() - mill));
 }
 
 void updateOldGuy()
@@ -471,7 +606,12 @@ void keyPressed()
     if (turbo) frameRate(999999); 
     else frameRate(fr);
   }
-  
+  if (key == 'o')
+  {
+   //population.get(0).doDeepCopy();
+   player tmp =  new player(population.get(0));
+   population.add(tmp);
+  }
 }
 
 void keyReleased()

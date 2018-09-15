@@ -28,6 +28,7 @@ void setup()
   b = new Brain(numLayers, numNodes, inputNodes, outputNodes, width, height, xPadding, yPadding, 1);
   
   
+  
   //numLayers, numnodes, inputlayer, width, height, xpos, ypox
   
   //Brain(int numLayers, int nodesPerLayer, float wdth, float hght, float xpos, float ypos)
@@ -149,6 +150,48 @@ void drawText(String text, float x, float y)
 class Brain
 {
   ArrayList<ArrayList<Node>> brain = new ArrayList<ArrayList<Node>>(); // 2d array of nodes, each layer followed by the nodes in that layer
+  
+  Brain()
+  {
+   brain = new ArrayList<ArrayList<Node>>(); 
+  }
+  
+  Brain deepCopy()
+  {
+    Brain ret = new Brain();
+    HashMap<Node,Node> hm = new HashMap<Node,Node>(); // prev -> new for lines
+    for (int i = 0; i < brain.size(); i++)
+    {
+      
+      ArrayList<Node> tmp = new ArrayList<Node>();
+      ArrayList<Node> prev = brain.get(i);
+      for (int j = 0; j < prev.size(); j++)
+      {
+        //println(i + "," + j);  
+        tmp.add(prev.get(j).clone(hm));
+      }
+      ret.brain.add(tmp);
+      
+    }
+    println("size of hashmap = " + hm.entrySet().size());
+    
+    for (int i = 0; i < brain.size(); i++)
+    {
+      ArrayList<Node> tmp = ret.brain.get(i);
+      for (int j = 0; j < tmp.size(); j++)
+      {
+        tmp.get(j).finishClone(hm);
+      }
+    }
+    
+    
+    
+    
+    
+    //Then copy lines with hashmap
+    
+    return ret;    
+  }
   
   Node[] getInput()
   {
@@ -387,6 +430,33 @@ class Node
   float rawVal;
   float bias;
   int override = -1;
+  Node(float x, float y, float val)
+  {
+    this.x = x;
+    this.y = y;
+    this.val = val;
+    
+  }
+  
+  Node clone(HashMap<Node,Node> hm)
+  {
+    Node ret = new Node(x,y,val);
+    for(int i = 0; i < lines.size(); i++)
+    {
+      Line tmp = new Line(this.lines.get(i));
+      ret.lines.add(tmp);
+    }
+    hm.put(this, ret);
+    
+    return ret;
+  }
+  void finishClone(HashMap<Node,Node> hm)
+  {
+    for (int i = 0; i < lines.size(); i++)
+    {
+     lines.get(i).fixLines(hm); 
+    }
+  }
   
   
   float size = 25;
@@ -493,6 +563,19 @@ class Line
     stroke(255 - (weight+1) * 128,   (weight+1) * 128, 0);
     line(A.x, A.y, B.x, B.y);
     //drawText(str(weight), (A.x + B.x)/2, (A.y + B.y)/2);
+  }
+  
+  void fixLines(HashMap<Node,Node> hm)
+  {
+    this.A = hm.get(A);
+    this.B = hm.get(B);
+  }
+  
+  Line(Line old)
+  {
+   this.A = old.A;
+   this.B = old.B;
+   this.weight = old.weight;
   }
   
   Line(Node a, Node b)
