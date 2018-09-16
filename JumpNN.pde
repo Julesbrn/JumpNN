@@ -15,10 +15,7 @@ destroy obstacle when off screen
 
 public class MyRunnable implements Runnable 
 {
-  player pl;
-  
-  
-
+   player pl;
    public MyRunnable(player pl) 
    {
       this.pl = pl;
@@ -26,22 +23,16 @@ public class MyRunnable implements Runnable
    
    public void run()
    {
-     int counter = 0;
      while(pl.alive)
      {
-       counter ++;
-       if (counter >= 100)
-       {
-         counter = 0;
         try 
         {
-          Thread.sleep(1);
+          Thread.sleep(0, 100000); //check for work every 0.1ms, not ideal.
         } 
         catch (InterruptedException e) 
         {
           e.printStackTrace();
         }
-       }
       if (pl.active)
       {
         //println("running");
@@ -370,6 +361,7 @@ ArrayList<obstacle> obstacles = new ArrayList<obstacle>();
 
 int counter = 0;
 int numPlayers = 100;
+int topPlayers = 1;
 
 int fr = 60;
 Thread[] threads;
@@ -574,18 +566,7 @@ void draw()
   mill = nanoTime();
   if (population.size() == 0)
   {
-    obstacles.remove(0); //Remove the obstacle so the players dont die immediently
-    generation++; //we are breeding, so we increment the generation count
-    for (int i = graveYard.size()-1; i > graveYard.size() - 11; i--)
-    {
-      player tmp = graveYard.get(i); 
-      tmp.revive();
-      population.add(tmp); //we keep the top 10 fittest
-      for (int j = 0; j < 9; j++) //Then we create 9 additional players mutated from the original
-      {
-        population.add(new player(tmp));
-      }
-    }
+    doGeneration();
   }
   timingDebug("everyone died, finished breeding.", mill);
   
@@ -604,83 +585,12 @@ void draw()
   //println("took: " +( nanoTime() - mill));
 }
 
-void updateOldGuy()
-{
-  // Only apply gravity if above ground (since y positive is down we use < ground)
-  if (oldGuy.position.y < ground)
-  {
-    oldGuy.velocity.y += gravity;
-  }
-  else
-  {
-    oldGuy.velocity.y = 0; 
-  }
-  
-  // If on the ground and "jump" keyy is pressed set my upward velocity to the jump speed!
-  if (oldGuy.position.y >= ground && up != 0)
-  {
-    oldGuy.velocity.y = -oldGuy.jumpSpeed;
-  }
-  
-  // Wlak left and right. See Car example for more detail.
-  oldGuy.velocity.x = oldGuy.walkSpeed * (left + right);
-  
-  // We check the nextPosition before actually setting the position so we can
-  // not move the oldguy if he's colliding.
-  PVector nextPosition = new PVector(oldGuy.position.x, oldGuy.position.y);
-  nextPosition.add(oldGuy.velocity);
-  
-  // Check collision with edge of screen and don't move if at the edge
-  float offset = 0;
-  if (nextPosition.x > offset && nextPosition.x < (width - offset))
-  {
-    oldGuy.position.x = nextPosition.x;
-  } 
-  if (nextPosition.y > offset && nextPosition.y < (height - offset))
-  {
-    oldGuy.position.y = nextPosition.y;
-  } 
-  
-  // See car example for more detail here.
-  pushMatrix();
-  
-  translate(oldGuy.position.x, oldGuy.position.y);
-  
-  // Always scale after translate and rotate.
-  // We're using oldGuy.direction because a -1 scale flips the image in that direction.
-  scale(oldGuy.direction, 1);
-  
-  imageMode(CENTER);
-  image(oldGuy.image, 0, 0);
-  
-  popMatrix();
-}
-
 boolean isSlow = false;
 
 
 
 void keyPressed()
 {
-  /*if (key == 'd')
-  {
-    right = 1;
-    oldGuy.direction = -1;
-  }
-  if (key == 'a')
-  {
-    left = -1;
-    oldGuy.direction = 1;
-  }
-  if (key == ' ')
-  {
-    up = -1;
-    p.up = -1;
-  }
-  if (key == 's')
-  {
-    down = 1;
-  }*/
   if (key == 'p')
   {
    show = !show; 
@@ -805,7 +715,7 @@ void doGeneration_nograveyard()
   if (population.size() == 0) return;
   
   int alive = population.size();
-  int tmp = (100 - alive) / population.size();
+  int tmp = (numPlayers - alive) / population.size();
   
   
   for (int i = 0; i < alive; i ++)
@@ -839,4 +749,38 @@ void doGeneration_somegraveyard()
       population.add(new player(tmp));
     }
   }
+}
+
+void doGeneration()
+{
+  obstacles.remove(0); //Remove the obstacle so the players dont die immediently
+  generation++; //we are breeding, so we increment the generation count
+  
+  for (int i = graveYard.size()-1; i > graveYard.size() - topPlayers - 1; i--)
+  {
+    player tmp = graveYard.get(i); 
+    tmp.revive();
+    population.add(tmp); //we keep the top 10 fittest
+    int remaining = (numPlayers - topPlayers) / topPlayers;
+    for (int j = 0; j < remaining; j++) //Then we create 9 additional players mutated from the original
+    {
+      population.add(new player(tmp));
+    }
+  } 
+}
+
+void doGeneration_old()
+{
+  obstacles.remove(0); //Remove the obstacle so the players dont die immediently
+  generation++; //we are breeding, so we increment the generation count
+  for (int i = graveYard.size()-1; i > graveYard.size() - 11; i--)
+  {
+    player tmp = graveYard.get(i); 
+    tmp.revive();
+    population.add(tmp); //we keep the top 10 fittest
+    for (int j = 0; j < 9; j++) //Then we create 9 additional players mutated from the original
+    {
+      population.add(new player(tmp));
+    }
+  } 
 }
