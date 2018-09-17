@@ -173,7 +173,7 @@ class Brain
       ret.brain.add(tmp);
       
     }
-    println("size of hashmap = " + hm.entrySet().size());
+    //println("size of hashmap = " + hm.entrySet().size());
     
     for (int i = 0; i < brain.size(); i++)
     {

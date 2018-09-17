@@ -152,6 +152,12 @@ class player
   Node[] inputLayer;
   Node[] outputLayer;
   
+  protected void finalize() throws Throwable  
+  { 
+      // will print name of object 
+      System.out.println(this.name + " successfully garbage collected"); 
+  } 
+  
   player(String name, float posx, float posy, float velx, float vely, float r, float g, float b, int numNodes, int numLayers)
   {
     br = new Brain(numLayers, numNodes, inputNodes, outputNodes, width, height/2, xPadding, yPadding, 1);
@@ -186,8 +192,9 @@ class player
   }
   
   
-  player(player old)
+  player(player old, String newName)
   {
+    this.name = newName;
     
     this.br = old.br.deepCopy();
     this.br.evolve();
@@ -310,6 +317,7 @@ class player
 
 boolean checkCollision(player p, obstacle o)
 {
+  if (p == null || o == null) return false;
   //boolean tmp = false;
   //if (!tmp) return false;
   //check for player in obstacle
@@ -394,19 +402,23 @@ int numPlayers = 100;
 int topPlayers = 50;
 
 int fr = 60;
-Thread[] threads;
+
+int minLayers = 11;
+int maxLayers = 11;
+int minNodes = 9;
+int maxNodes = 9;
 
 void setup()
 {
   size(800, 800);
   frameRate(fr);
   
-  ob = new obstacle(width,height -20, 2.5, 20);
-  obstacles.add(ob);
-  p = new player("Player", 100,700, -1, 0, 255,255,255);
+  //ob = new obstacle(width,height -20, 2.5, 20);
+  //obstacles.add(ob);
+  //p = new player("Player", 100,700, -1, 0, 255,255,255);
   for (int i = 0; i < numPlayers; i++)
   {
-   player tmp =  new player("" + i, 10,700, -1, 0, random(0,255), random(0,255), random(0,255), int(random(1,10)), int(random(1,10)));
+   player tmp =  new player("" + i, 10,700, -1, 0, random(0,255), random(0,255), random(0,255), int(random(minNodes, maxNodes)), int(random(minLayers,maxLayers)));
    population.add(tmp);
   }
   
@@ -456,6 +468,7 @@ boolean showOb = true;
 boolean showPl = true;
 boolean showT = true;
 
+int playerCounter = 0;
 
 
 
@@ -464,6 +477,7 @@ boolean showT = true;
 
 synchronized void draw()
 {
+  //println("graveyard: " + graveYard.size());
   
   
   
@@ -654,7 +668,7 @@ void keyPressed()
   if (key == 'o')
   {
    //population.get(0).doDeepCopy();
-   player tmp =  new player(population.get(0));
+   player tmp =  new player(population.get(0), str(counter++));
    population.add(tmp);
   }
   if(key == 'l')
@@ -753,7 +767,7 @@ void doGeneration_graveyard()
       population.add(tmp); //we keep the top 10 fittest
       for (int j = 0; j < 9; j++) //Then we create 9 additional players mutated from the original
       {
-        population.add(new player(tmp));
+        population.add(new player(tmp, str(counter++)));
       }
     }
 }
@@ -772,7 +786,7 @@ void doGeneration_nograveyard()
     player p = population.get(i);
     for (int j = 0; j < tmp; j++)
     {
-      population.add(new player(p));
+      population.add(new player(p, str(counter++)));
     }
   }
   graveYard = new ArrayList(); //delete anything in the graveyard.
@@ -795,7 +809,7 @@ void doGeneration_somegraveyard()
     player tmp = population.get(i);
     for (int j = 0; j < 9; j++)
     {
-      population.add(new player(tmp));
+      population.add(new player(tmp, str(counter++)));
     }
   }
 }
@@ -813,9 +827,11 @@ void doGeneration()
     int remaining = (numPlayers - topPlayers) / topPlayers;
     for (int j = 0; j < remaining; j++) //Then we create 9 additional players mutated from the original
     {
-      population.add(new player(tmp));
+      population.add(new player(tmp, str(counter++)));
     }
   } 
+  graveYard = new ArrayList();
+  System.gc();
 }
 
 void doGeneration_old()
@@ -829,7 +845,7 @@ void doGeneration_old()
     population.add(tmp); //we keep the top 10 fittest
     for (int j = 0; j < 9; j++) //Then we create 9 additional players mutated from the original
     {
-      population.add(new player(tmp));
+      population.add(new player(tmp, str(counter++)));
     }
   } 
 }
