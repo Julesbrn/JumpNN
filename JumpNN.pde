@@ -7,35 +7,66 @@
 
 /*
 todo
-detect collision between obstacles and player, // redo collison detection
-destroy obstacle when off screen
+
+the toggle by pressing L stops threads from processing
+memory leaks, big time. Need to resolve. Objects not being deleted?
 */
+
+
 
 
 
 public class MyRunnable implements Runnable 
 {
    player pl;
+   
+
    public MyRunnable(player pl) 
    {
       this.pl = pl;
    }
+   public synchronized void doWaitLoop()
+   {
+     while(!pl.active)
+       {
+         try
+         {
+           ////println("-----------------locking-------------------");
+           //LOCK.wait();
+           wait();
+           ////println("-----------------unlocked-------------------");
+         }
+         catch (InterruptedException ex)
+         {
+            System.err.println(ex);
+         }
+       }
+   }
    
+   public synchronized void doWait()
+   {
+     try
+         {
+           ////println("-----------------locking-------------------");
+           wait();
+           ////println("-----------------unlocked-------------------");
+         }
+         catch (InterruptedException ex)
+         {
+            System.err.println(ex);
+         }
+   }
+
    public void run()
    {
+     ////println("-------------------------------starting thread-----------------");
      while(pl.alive)
      {
-        try 
-        {
-          Thread.sleep(0, 100000); //check for work every 0.1ms, not ideal.
-        } 
-        catch (InterruptedException e) 
-        {
-          e.printStackTrace();
-        }
-      if (pl.active)
-      {
-        //println("running");
+       
+       doWait();
+       ////println("-----------------completely unlocked-------------------");
+
+        ////println("running");
         pl.doWork();
 
         float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
@@ -47,9 +78,7 @@ public class MyRunnable implements Runnable
         if (pl.shouldJump()) pl.up = -1;
         else pl.up = 0;
         
-        pl.active = false;
-        //println("finished running");
-      }
+        //pl.active = false;
      }
      
    }
@@ -86,7 +115,7 @@ class obstacle
   }
   void debug()
   {
-   println(x + ":" + y + ":"); 
+   //println(x + ":" + y + ":"); 
   }
   void doWork()
   {
@@ -115,6 +144,7 @@ class player
   int xPadding = 50;
   int yPadding = 50;
   Thread thread;
+  Runnable run;
   
 
   Brain br;
@@ -176,7 +206,7 @@ class player
   
   void revive()
   {
-   if (this.alive) println("==========================Player was alive=========================");
+   if (this.alive) //println("==========================Player was alive=========================");
    this.alive = true;
    this.createThread();
   }
@@ -185,13 +215,13 @@ class player
   {
     Brain br2 = br.deepCopy();
     br = br2;
-    //println("Copied brain!");
+    ////println("Copied brain!");
   }
   
   void createThread()
   {
-   Runnable r = new MyRunnable(this); //create the runnable and pass in the player reference
-    thread = new Thread(r); //make it a threads
+    run = new MyRunnable(this); //create the runnable and pass in the player reference
+    thread = new Thread(run); //make it a threads
     thread.start(); //star the thread 
   }
 
@@ -219,7 +249,7 @@ class player
   
   boolean shouldJump()
   {
-    //println("output: " + br.getOutput()[0].val);
+    ////println("output: " + br.getOutput()[0].val);
     if (br.getOutput()[0].val >= 0.5) return true;
     else return false;
    //return br.getOutput()[0].val >= 0.5;
@@ -229,7 +259,7 @@ class player
   
   void die()
   {
-   println(name + " has died"); 
+   //println(name + " has died"); 
   }
   void doWork()
   {
@@ -246,7 +276,7 @@ class player
     // If on the ground and "jump" key is pressed set my upward velocity to the jump speed!
     if (posy >= ground && up != 0)
     {
-      //println("pjump");
+      ////println("pjump");
       vely = -10;
     }
     
@@ -361,7 +391,7 @@ ArrayList<obstacle> obstacles = new ArrayList<obstacle>();
 
 int counter = 0;
 int numPlayers = 100;
-int topPlayers = 1;
+int topPlayers = 50;
 
 int fr = 60;
 Thread[] threads;
@@ -401,7 +431,7 @@ void setup()
 void timingDebug(String info, float mil)
 {
   float now = nanoTime();
-  println(info + " took " + (nanoTime() - mil));
+  //println(info + " took " + (nanoTime() - mil));
 }
 
 float calcDist(player p, obstacle o)
@@ -432,22 +462,22 @@ boolean showT = true;
 
 
 
-void draw()
+synchronized void draw()
 {
   
   
   
   
-  println("nano: " + (System.nanoTime() - nano));
+  //println("nano: " + (System.nanoTime() - nano));
   nano = System.nanoTime();
   mill = nanoTime();
   
-  println("framrate: " + frameRate);
+  //println("framrate: " + frameRate);
   
   counter++;
   if (counter >= next)
   {
-    println(counter + ":" + next + " triggered");
+    //println(counter + ":" + next + " triggered");
    counter = 0;
    next = int(random(60,190));
    obstacles.add(new obstacle(width,height -20, 2.5, 50));
@@ -474,7 +504,7 @@ void draw()
   //ob.doDraw();
   if (checkCollision(p, ob))
   {
-   //println("COLLISION"); 
+   ////println("COLLISION"); 
   }
   
   //===========================split for loop============================
@@ -483,8 +513,15 @@ void draw()
 
   for (player pl: population)
   {
-    pl.active = true;
+    //pl.active = true; //probably not needed, but just in case 
+    synchronized(pl.run)
+    {
+      pl.run.notify();
+    }
+    
   }
+  //notifyAll();
+  doUnlock();
   
   
   
@@ -500,7 +537,7 @@ void draw()
       e.printStackTrace();
     }
   }
-  println("threads terminated"); 
+  //println("threads terminated"); 
   timingDebug("threads terminated", mill);*/
   
   
@@ -579,10 +616,10 @@ void draw()
     if (showOb) tmp.doDraw();
     if (tmp.x <= 0) obstacles.remove(i); //if this obstacle is off the screen, it doesnt matter
   }
-  println(obstacles.size() + " obstacles present");
+  //println(obstacles.size() + " obstacles present");
   timingDebug("Drew obstacles", mill);
   
-  //println("took: " +( nanoTime() - mill));
+  ////println("took: " +( nanoTime() - mill));
 }
 
 boolean isSlow = false;
@@ -635,13 +672,13 @@ void keyPressed()
     if(isSlow) 
     {
       isSlow = false;
-      println("framerate " + frameRate);
+      //println("framerate " + frameRate);
       frameRate(fr);
     }
     else 
     {
       isSlow = true;
-      println("framerate " + frameRate);
+      //println("framerate " + frameRate);
       frameRate(1);
     }
   }
@@ -649,6 +686,18 @@ void keyPressed()
   {
    doGeneration_nograveyard(); 
   }
+  if (key == 'f')
+  {
+   doUnlock();
+  }
+}
+
+
+public synchronized void doUnlock()
+{
+  //println("unlocking");
+ notify();
+ //println("finished unlocking");
 }
 
 void keyReleased()
@@ -660,16 +709,16 @@ void keyReleased()
 
 void debugThreads()
 {
-  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+  //println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
   for (int i = 0; i < population.size(); i++)
   {
     String t = "Thread " + i + " ";
      t += (population.get(0).thread.isAlive()) ? "Running" : "Not Running";
      //if (!population.get(0).thread.isAlive()) population.get(0).thread.start();
-     println(t);
+     //println(t);
   }
   
-  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+  //println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
   
 }
 
@@ -739,7 +788,7 @@ void doGeneration_somegraveyard()
     population.add(tmp);
     
   }
-  println("population size: " + population.size());
+  //println("population size: " + population.size());
   
   for (int i = 0; i < population.size(); i++)
   {
