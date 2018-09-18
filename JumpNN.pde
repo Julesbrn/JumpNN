@@ -34,10 +34,7 @@ public class MyRunnable implements Runnable
        {
          try
          {
-           ////println("-----------------locking-------------------");
-           //LOCK.wait();
            wait();
-           ////println("-----------------unlocked-------------------");
          }
          catch (InterruptedException ex)
          {
@@ -45,6 +42,36 @@ public class MyRunnable implements Runnable
          }
        }
        println("Player " + pl.name + "'s thread has terminated.");
+   }
+   
+   public synchronized void run()
+   {
+    try
+     {
+       while(pl.alive)
+       {
+         if (pl == null) break;
+
+
+          pl.doWork();
+  
+          float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
+          if (obstacles.size() != 0) dists[0] = calcDist(pl, obstacles.get(0));
+          
+          pl.setNNInput(dists);
+          pl.br.doCalc();
+          
+          if (pl.shouldJump()) pl.up = -1;
+          else pl.up = 0;
+          
+          wait();
+       }
+     }
+     catch (InterruptedException ex)
+     {
+        //System.err.println(ex);
+        pl = null;
+     } 
    }
    
    public synchronized void doWait()
@@ -62,7 +89,7 @@ public class MyRunnable implements Runnable
      }
    }
 
-   public void run()
+   public void run2()
    {
      //println("-------------------------------starting thread for player " + pl.name + " " + pl.alive  + " -----------------");
      while(pl.alive)
