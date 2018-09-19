@@ -1,60 +1,23 @@
 import java.util.*;
-//Hashtable<String,Boolean> tracking = new Hashtable();
-/* @pjs preload="oldman_3.png"; */
-// Devon Scott-Tunkin
-// Playgramming 2013
-
-
-
-
-/*
-todo
-
-the toggle by pressing L stops threads from processing
-memory leaks, big time. Need to resolve. Objects not being deleted?
-*/
-
-
-
-
-
 
 public class MyRunnable implements Runnable 
 {
    player pl;
    
-
    public MyRunnable(player pl) 
    {
       this.pl = pl;
-   }
-   public synchronized void doWaitLoop()
-   {
-     while(!pl.alive)
-       {
-         try
-         {
-           wait();
-         }
-         catch (InterruptedException ex)
-         {
-            System.err.println(ex);
-         }
-       }
-       println("Player " + pl.name + "'s thread has terminated.");
    }
    
    public synchronized void run()
    {
     try
      {
-       while(pl.alive)
+       while(pl != null && pl.alive)
        {
          if (pl == null) break;
-
-
           pl.doWork();
-  
+
           float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
           if (obstacles.size() != 0) dists[0] = calcDist(pl, obstacles.get(0));
           
@@ -69,82 +32,9 @@ public class MyRunnable implements Runnable
      }
      catch (InterruptedException ex)
      {
-        //System.err.println(ex);
-        pl = null;
+        pl = null; //Thread was told to stop, ensure garbage collection will remove this object
      } 
    }
-   
-   public synchronized void doWait()
-   {
-     try
-     {
-       //println("-----------------locking-------------------");
-       wait();
-       //println("-----------------unlocked-------------------");
-     }
-     catch (InterruptedException ex)
-     {
-        System.err.println(ex);
-        pl = null;
-     }
-   }
-
-   public void run2()
-   {
-     //println("-------------------------------starting thread for player " + pl.name + " " + pl.alive  + " -----------------");
-     while(pl.alive)
-     {
-       if (pl.test == 0) println("0");
-       doWait();
-       if (pl == null) break;
-       if (!pl.running) 
-       {
-         //println("thread is running when it should not be " + pl.name);
-         break;
-       }
-       if (!pl.running) 
-       {
-         
-         println("thread is running when it should not be " + pl.name);
-       }
-       //if (!pl.alive) println("-------------------------------checking thread for player " + pl.name + " " + pl.alive  + " -----------------");
-       if (!pl.alive) break;
-       if (!pl.running) println("thread is still running after termination");
-       //if (!pl.alive) println("still alive? wrongly");
-       ////println("-----------------completely unlocked-------------------");
-
-        ////println("running");
-        pl.doWork();
-
-        float[] dists = new float[1]; //we only care about the closest obstacle, this is an array to make extension easier
-        if (obstacles.size() != 0) dists[0] = calcDist(pl, obstacles.get(0));
-        
-        pl.setNNInput(dists);
-        pl.br.doCalc();
-        
-        if (pl.shouldJump()) pl.up = -1;
-        else pl.up = 0;
-        
-        //pl.active = false;
-     }
-     //println("player " + pl.name + "'s thread has terminated");
-     
-   }
-}
-  
-  
-  
- 
-  
-
-class SideJumper
-{
-  PImage image;
-  PVector position;
-  float direction;
-  PVector velocity;
-  float jumpSpeed;
-  float walkSpeed;
 }
 
 class obstacle
@@ -161,28 +51,19 @@ class obstacle
     this.speed = speed;
     this.sizey = h;
   }
-  void debug()
-  {
-   //println(x + ":" + y + ":"); 
-  }
   void doWork()
   {
     x -= speed;
   }
   void doDraw()
   {
-    
-    //ellipse(x, y, 10, 10);
     fill(255);
     rect(x, y - sizey + 10, sizex, sizey);
-    
   }
 }
 
 class player
 {
-  Integer test = -1;
-  //boolean active = true;
   boolean alive = true;
   int inputNodes = 1;
   int outputNodes = 1;
@@ -194,28 +75,13 @@ class player
   int yPadding = 50;
   Thread thread;
   Runnable run;
-  
-  boolean running = true;
-  
-
   Brain br;
   
   Node[] inputLayer;
   Node[] outputLayer;
   
-  protected void finalize() throws Throwable  
-  { 
-      // will print name of object 
-      //System.out.println(this.name + " successfully garbage collected"); 
-      //tracking.put(this.name, true);
-  } 
-  
   player(String name, float posx, float posy, float velx, float vely, float r, float g, float b, int numNodes, int numLayers)
   {
-    //if (tracking == null) println("tracking was null");
-    
-    
-    //tracking.put(name, false);
     br = new Brain(numLayers, numNodes, inputNodes, outputNodes, width, height/2, xPadding, yPadding, 1);
     this.name = name;
     this.posx = posx;
@@ -233,7 +99,6 @@ class player
   
   player(String name, float posx, float posy, float velx, float vely, float r, float g, float b)
   {
-    //tracking.put(this.name, false);
     br = new Brain(numLayers, numNodes, inputNodes, outputNodes, width, height/2, xPadding, yPadding, 1);
     this.name = name;
     this.posx = posx;
@@ -251,11 +116,8 @@ class player
   
   player(player old, String newName)
   {
-    //tracking.put(newName, false);
-    //println("player " + newName + " created.");
     this.name = newName;
     this.alive = true;
-    
     this.br = old.br.deepCopy();
     this.br.evolve();
     this.posx = old.posx;
@@ -273,8 +135,6 @@ class player
   
   void revive()
   {
-    //tracking.put(this.name, false);
-   //if (this.alive) //println("==========================Player was alive=========================");
    this.alive = true;
    this.createThread();
   }
@@ -317,22 +177,17 @@ class player
   
   boolean shouldJump()
   {
-    ////println("output: " + br.getOutput()[0].val);
-    if (br.getOutput()[0].val >= 0.5) return true;
+    if (br.getOutput()[0].val >= 0.5) return true; //if the output node is >= 0.5 jump
     else return false;
-   //return br.getOutput()[0].val >= 0.5;
   }
-  
-  
   
   void die()
   {
-   //println(name + " has died"); 
    this.alive = false;
    this.thread.interrupt();
-   
   }
-  void doWork()
+  
+  void doWork() //created from example code
   {
      // Only apply gravity if above ground (since y positive is down we use < ground)
     if (posy < ground)
@@ -347,30 +202,16 @@ class player
     // If on the ground and "jump" key is pressed set my upward velocity to the jump speed!
     if (posy >= ground && up != 0)
     {
-      ////println("pjump");
       vely = -10;
-    }
-    
-    
-    // Walk left and right. See Car example for more detail.
-    velx = walkSpeed * (left + right);
-    
-    // We check the nextPosition before actually setting the position so we can
-    // not move the oldguy if he's colliding.
-    
+    }   
     
     // Check collision with edge of screen and don't move if at the edge
     float offset = 0;
-    if (posx + velx > offset && posx + velx < (width - offset))
-    {
-      posx += velx;
-    } 
     if (posy + vely > offset && posy + vely < (height - offset))
     {
       posy += vely;
     }  
   }
-  
   
   void doDraw()
   {
@@ -381,10 +222,7 @@ class player
 
 boolean checkCollision(player p, obstacle o)
 {
-  if (p == null || o == null) return false;
-  //boolean tmp = false;
-  //if (!tmp) return false;
-  //check for player in obstacle
+  if (p == null || o == null) return false; //just in case to prevent any errors. If either one does not exist, it cant collide.
   if (o.x <= p.posx && p.posx <= o.x + o.sizex) //left side
   {
     if (o.y <= p.posy && p.posy <= o.y + o.sizey) return true; //top
@@ -441,13 +279,6 @@ boolean checkCollision_old(player p, obstacle o)
 }
 
 
-// GLOBAL VARIABLES
-
-SideJumper oldGuy;
-float left;
-float right;
-float up;
-float down;
 
 // half a pixel per frame gravity.
 float gravity = .5;
@@ -482,15 +313,12 @@ void setup()
    player tmp =  new player("" + i, 10,700, -1, 0, random(0,255), random(0,255), random(0,255), int(random(minNodes, maxNodes)), int(random(minLayers,maxLayers)));
    population.add(tmp);
   }
-  
   mill = nanoTime();
-  
 }
 
 void timingDebug(String info, float mil)
 {
   float now = nanoTime();
-  //println(info + " took " + (nanoTime() - mil));
 }
 
 float calcDist(player p, obstacle o)
@@ -525,18 +353,13 @@ int playerCounter = 0;
 synchronized void draw()
 {
   
-  for (player p: population)
+  /*for (player p: population)
   {
     if (!p.thread.isAlive() && p.alive) 
     {
       println("There is a dead thread still alive: " + p.name);
-      
-      
     }
-  }
-  
-  
-  
+  }*/
   
   nano = System.nanoTime();
   mill = nanoTime();
@@ -545,12 +368,12 @@ synchronized void draw()
   counter++;
   if (counter >= next)
   {
-    //println(counter + ":" + next + " triggered");
    counter = 0;
    next = int(random(60,190));
    obstacles.add(new obstacle(width,height -20, 2.5, 50));
   }
-  timingDebug("Spawning obstacles", mill);
+  
+  //timingDebug("Spawning obstacles", mill);
   
   
   mill = nanoTime();
@@ -567,22 +390,16 @@ synchronized void draw()
   rect(0, 790, 800,10);
   fill(255);
 
-   mill = nanoTime();
-
   for (player pl: population)
   {
     synchronized(pl.run)
     {
       pl.run.notify();
     }
-    
   }
-  //doUnlock();
   
   for (player pl: population)//draw loop
   {
-    //pl.active = true;
-    
     if (showPl) pl.doDraw();
     if (show) pl.br.doDraw();
   }
@@ -597,7 +414,6 @@ synchronized void draw()
       if (checkCollision(tmp, o) || !tmp.alive)
       {
         tmp.die();
-        //tmp.alive = false;
         graveYard.add(tmp);
         population.remove(i);
         synchronized(tmp.run)
@@ -613,7 +429,6 @@ synchronized void draw()
     doGeneration();
   }
 
-  mill = nanoTime();
   for (int i = obstacles.size()-1; i >= 0; i--)
   {
     obstacle tmp = obstacles.get(i);
@@ -654,7 +469,6 @@ void keyPressed()
   }
   if (key == 'o')
   {
-   //population.get(0).doDeepCopy();
    player tmp =  new player(population.get(0), str(counter++));
    population.add(tmp);
   }
@@ -673,13 +487,11 @@ void keyPressed()
     if(isSlow) 
     {
       isSlow = false;
-      //println("framerate " + frameRate);
       frameRate(fr);
     }
     else 
     {
       isSlow = true;
-      //println("framerate " + frameRate);
       frameRate(1);
     }
   }
@@ -698,66 +510,25 @@ void keyPressed()
       println(p.name + (p.thread.isAlive() ? " is running." : "is dead."));
     }
   }
-  /*if (key == 'd')
-  {
-   String tmp = "";
-   for (player p: population)
-   {
-    tmp += p.name + ","; 
-   }
-   tmp += "\n";
-
-   for(String entry : tracking.keySet()) 
-   {
-    tmp += entry + ":" + tracking.get(entry) + ",";
-    
-    Boolean found = false;
-    for (player p: population)
-    {
-      if (p.name == entry) 
-      {
-       found = true;
-       break;
-      }
-    }
-    if (found != tracking.get(entry)) println("both were " + (found? "alive" : "dead"));
-    else println(entry + " " + found + "," + tracking.get(entry));
-    //if (found) println(entry + " is alive.");
-    //else println(entry  + " is dead.");
-   }
-   println("players alive: " + tmp);
-   
-  }*/
 }
 
 
 public synchronized void doUnlock()
 {
-  //println("unlocking");
  notify();
- //println("finished unlocking");
 }
 
 void keyReleased()
 {
-
-  
-  
 }
 
 void debugThreads()
 {
-  //println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
   for (int i = 0; i < population.size(); i++)
   {
     String t = "Thread " + i + " ";
      t += (population.get(0).thread.isAlive()) ? "Running" : "Not Running";
-     //if (!population.get(0).thread.isAlive()) population.get(0).thread.start();
-     //println(t);
   }
-  
-  //println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-  
 }
 
 void baseFunc(int num)
@@ -863,8 +634,8 @@ void doGeneration()
   } 
   for (player g: graveYard)
   {
-    g.running = false;
-    if (g.running) println("BOOLEAN WAS NOT SET!");
+    //g.running = false;
+    //if (g.running) println("BOOLEAN WAS NOT SET!");
     g.alive = false;
     synchronized(g.run)
     {
@@ -891,7 +662,6 @@ void doGeneration()
       println("====player " + g.name + " has a running thread while dead " + g.alive);
     }
     g.thread.interrupt();
-    g.test = null;
   }
   graveYard = new ArrayList();
   System.gc();
