@@ -1,83 +1,4 @@
 
-PFont f;
-
-int width2 = 3*width/4;
-
-Brain b;
-/*
-void setup() 
-{
-  size(1280, 720);
-  //printArray(PFont.list());
-  f = createFont("SourceCodePro-Regular.ttf", 24);
-  textFont(f);
-  
-  
-  int inputNodes = 2;
-  int outputNodes = 1;
-  
-  int numNodes = 2;
-  int numLayers = 1;
-  
-  int xPadding = 50;
-  int yPadding = 50;
-  
-  
-  
-  
-  b = new Brain(numLayers, numNodes, inputNodes, outputNodes, width, height, xPadding, yPadding, 1);
-  
-  
-  
-  //numLayers, numnodes, inputlayer, width, height, xpos, ypox
-  
-  //Brain(int numLayers, int nodesPerLayer, float wdth, float hght, float xpos, float ypos)
-  
-  
-}
-*/
-
-/*
-void keyPressed() {
-  int keyIndex = -1;
-  if (key >= 'A' && key <= 'Z') 
-  {
-    keyIndex = key - 'A';
-  } 
-  else if (key >= 'a' && key <= 'z') 
-  {
-    keyIndex = key - 'a';
-  }
-  if (keyIndex == -1) 
-  {
-    // If it's not a letter key, clear the screen
-    background(0);
-  } 
-  else 
-  { 
-    String[] keys = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
-    String pressed = keys[keyIndex]; 
-    
-    println("keypressed: " + pressed);
-    ArrayList<Node> inputLayer = b.brain.get(0);
-    if (pressed == "I") inputLayer.get(0).changeVal(1f);
-    if (pressed == "K") inputLayer.get(0).changeVal(-1f);
-    
-    if (pressed == "U") inputLayer.get(1).changeVal(1f);
-    if (pressed == "J") inputLayer.get(1).changeVal(-1f);
-    
-    if (pressed == "R") 
-    {
-      inputLayer.get(0).val = 0;
-      inputLayer.get(1).val = 0;
-    }
-    
-    if (pressed == "E") b.evolve();
-    
-  }
-}
-*/
-
 float activation(float input, int override)
 {
   int type = 0;
@@ -88,13 +9,12 @@ float activation(float input, int override)
   }
   if (type == 1)
   {
-    println("THIS SHOULDNT HAPPEN!");
    if (input < 0) return 0;
    else return input;
   }
   else
   {
-    println("Something is wrong");
+   println("Something is wrong. input: " + input + " override: " + override);
    return 0; 
   }  
 }
@@ -112,31 +32,13 @@ float makeWeight()
   }
   else
   {
-    println("Something is wrong");
+    println("Something is wrong. makeWeight");
    return 0; 
   } 
 }
 
-
-
-
-float mil = millis();
-/*
-void draw() {
-  background(0);
-  
-    //drawText(str(handles[i].stretch), handles[i].x, handles[i].y);
-
-  b.doCalc();
-  b.doDraw();
-  
-  //println(millis() - mil);
-  //mil = millis();
-  //exit();
-  
-}
-*/
-void drawType(float x) {
+void drawType(float x) 
+{
   fill(255);
   text("shi", x, 210);
 }
@@ -162,18 +64,14 @@ class Brain
     HashMap<Node,Node> hm = new HashMap<Node,Node>(); // prev -> new for lines
     for (int i = 0; i < brain.size(); i++)
     {
-      
       ArrayList<Node> tmp = new ArrayList<Node>();
       ArrayList<Node> prev = brain.get(i);
       for (int j = 0; j < prev.size(); j++)
       {
-        //println(i + "," + j);  
         tmp.add(prev.get(j).clone(hm));
       }
       ret.brain.add(tmp);
-      
     }
-    //println("size of hashmap = " + hm.entrySet().size());
     
     for (int i = 0; i < brain.size(); i++)
     {
@@ -183,13 +81,6 @@ class Brain
         tmp.get(j).finishClone(hm);
       }
     }
-    
-    
-    
-    
-    
-    //Then copy lines with hashmap
-    
     return ret;    
   }
   
@@ -215,6 +106,20 @@ class Brain
    return tmp;
   }
   
+  void destroyBrain()
+  {
+    for (ArrayList<Node> b: brain)
+    {
+      for (Node n: b)
+      {
+        n.destroyNode();
+        n = null;
+      }
+      b = null;
+    }
+    brain = null;
+  }
+  
   
   Brain(int numLayers, int nodesPerLayer, int inputLayerNum, int outputNodesNum, float wdth, float hght, float xpos, float ypos, int x)
   {
@@ -223,7 +128,6 @@ class Brain
     
     wdth /= (numLayers+2);
     hght /= nodesPerLayer;
-    
     
     
     //make the first layer
@@ -235,6 +139,7 @@ class Brain
       firstLayer.add(abc);
     }
     brain.add(firstLayer);
+    
     
     //make the hidden layers
     for (int layer = 0; layer < numLayers; layer ++ )
@@ -252,12 +157,11 @@ class Brain
       
     }
     
-    //Make the output Layer
     
-     ArrayList<Node> outputLayer = new ArrayList<Node>();
+    //Make the output Layer
+    ArrayList<Node> outputLayer = new ArrayList<Node>();
     for (int i = 0; i < outputNodesNum; i ++)
     {
-      //Node abc = new Node(i * wdth + 0, numLayers * hght + 0);
       Node abc = new Node((numLayers+1) * wdth + xpos, (i) * outputHeight + outputHeight/2);
       abc.setVal(random(-1.0,1.0));
       abc.override = 0;
@@ -266,20 +170,15 @@ class Brain
     brain.add(outputLayer);
     
     //add all of the lines
-
-    
-    //for each layer in brain
-    for (int i = 1; i < brain.size(); i ++)
+    for (int i = 1; i < brain.size(); i ++)//for each layer in brain
     {
       
       ArrayList<Node> thisLayer = brain.get(i);
       ArrayList<Node> prevLayer = brain.get(i-1);
-      //for each node in this layer
-      for (int a = 0; a < thisLayer.size(); a++)
+      for (int a = 0; a < thisLayer.size(); a++) //for each node in this layer
       {
         ArrayList<Line> lines = new ArrayList<Line>();
-        //for nodes in previous layer
-        for (int b = 0; b < prevLayer.size(); b++)
+        for (int b = 0; b < prevLayer.size(); b++) //for nodes in previous layer
         {
           //create a link between these two
           lines.add(new Line(thisLayer.get(a), prevLayer.get(b)));
@@ -289,7 +188,7 @@ class Brain
     }
   }
   
-  void evolve()
+  void evolve() //to evolve a brain we either evolve a node or a line. Nodes mutate their bias. Lines mutate their weight
   {
    ArrayList<Node> tmp = brain.get(int(random(0f,1f)*(brain.size()-1))+1);
    Node n = tmp.get(int(random(0f,1f)*tmp.size()));
@@ -300,75 +199,9 @@ class Brain
      return;
    }
    
-   
    Line l = n.lines.get(int(random(0f,1f)*n.lines.size()));
    l.evolveLine();
-   
   }
-  
-  
-  
-  
-  
-  /*Brain(int numLayers, int nodesPerLayer, int inputLayerNum, int outputNodesNum, float wdth, float hght, float xpos, float ypos)
-  {
-    
-    //(width - xPadding) / numLayers, (height - yPadding) / numNodes, xPadding, yPadding
-    //float wdth, float hght, float xpos, float ypos
-    
-    //numLayers, numnodes, inputlayer, width, height, xpos, ypox
-    
-    float inputHeight = hght / (inputLayerNum);
-    
-    wdth /= numLayers;
-    hght /= nodesPerLayer;
-    
-    
-    
-    
-    
-    ArrayList<Node> tmp1 = new ArrayList<Node>();
-    for(int j = 0; j < inputLayerNum; j++)
-    {
-      Node abc = new Node(0 * wdth + xpos, (j) * inputHeight + inputHeight/2);
-      abc.setVal(random(-1.0,1.0));
-      tmp1.add(abc);
-      
-    }
-    brain.add(tmp1);
-      
-    for (int i = 1; i < numLayers; i ++)
-    {
-      int num = nodesPerLayer;
-      //if (i == 1) num = inputLayerNum; 
-      if (i == 1) num = inputLayerNum; 
-      if (i == numLayers-1) num = outputNodesNum;
-      ArrayList<Node> tmp = new ArrayList<Node>();
-      for(int j = 0; j < num; j++)
-      {
-        tmp.add(new Node(i * wdth + xpos, j * hght + ypos));
-      }
-      
-      
-      
-      println(num);
-      for(int a = 0; a < brain.get(i-1).size(); a++)
-      {
-       ArrayList<Line> lineTmp = new ArrayList<Line>();
-       ArrayList<Node> prev = brain.get(i-1);
-       for (int b = 0; b < brain.get(i-2).size(); b++)
-       {
-         //if (a != b) 
-         //println("=" + a + "," + b);
-         lineTmp.add(new Line(tmp.get(a), prev.get(b)));
-       }
-       tmp.get(a).addLines(lineTmp);
-      }
-      brain.add(tmp); //######## redo? generate all nodes then link? Solves index oob issues.
-      
-      
-    }
-  }*/
   
   void doDraw()
   {
@@ -401,11 +234,7 @@ class Brain
       {
         node.doDraw3();
       }
-    }
-    
-    
-    
-    
+    }  
   }
   
   
@@ -430,12 +259,20 @@ class Node
   float rawVal;
   float bias;
   int override = -1;
+  float size = 25;
+  
   Node(float x, float y, float val)
   {
     this.x = x;
     this.y = y;
     this.val = val;
-    
+  }
+  
+  Node(float x, float y)
+  {
+    this.x = x;
+    this.y = y;
+    bias = makeBias();
   }
   
   Node clone(HashMap<Node,Node> hm)
@@ -458,41 +295,32 @@ class Node
     }
   }
   
-  
-  float size = 25;
-  
-  Node(float x, float y)
-  {
-    this.x = x;
-    this.y = y;
-    bias = makeBias();
-  }
   void evolveNode()
   {
     bias = makeBias();
   }
+  
   float makeBias()
   {
-    //return 0;
     return random(-0.1f, 0.1);
   }
+  
   void addLines(ArrayList<Line> lines)
   {
     this.lines = lines;
   }
+  
   void setVal(float v)
   {
-    //println("setting:" + v);
    val = v; 
    size = ((val + 1)/2) * 15 + 10;
    if (size > 50) size = 50;
    if (size < 0) size = 10;
   }
+  
   void changeVal(float v)
   {
     val += v;
-    
-    //size = ((val + 1)/2) * 15 + 10;
     
     float act = activation(val, override);
     size = 10 + ((act+1)/2)*15;
@@ -503,29 +331,26 @@ class Node
     val = bias;
     for (Line line: lines)
     {
-      //println(val);
        val += line.calc();
-       
     }
     rawVal = val;
     
     val = activation(val, 0);
     
-    //size = ((val + 1)/2) * 15 + 10;
     size = 10 + val*15;
     if (size > 50) size = 50;
     if (size < 0) size = 10;
     
   }
+  
   void doDraw()
   {
-    
    for (Line line: lines)
    {
      line.doDraw(); 
    }
-   
   }
+  
   void doDraw2()
   {
     stroke(255);
@@ -534,12 +359,21 @@ class Node
     ellipse(x,y,size,size);
     doDraw3();
   }
+  
   void doDraw3()
   {
    drawText( str(val), x, y);
    drawText( str(bias), x, y+25);
   }
   
+  void destroyNode()
+  {
+   for (Line l: lines)
+   {
+     l.destroyLine();
+   }
+   lines = null;
+  }
 }
 
 class Line
@@ -549,27 +383,6 @@ class Line
   
   float weight; //the weight of this line
   
-  float calc()
-  {
-    //println(A.val * weight);
-    //println(B.val + "/\\" + weight + "\\/" + B.val * weight);
-   return B.val * weight; 
-   
-  }
-  
-  void doDraw()
-  {
-    //strokeWeight(10);
-    stroke(255 - (weight+1) * 128,   (weight+1) * 128, 0);
-    line(A.x, A.y, B.x, B.y);
-    //drawText(str(weight), (A.x + B.x)/2, (A.y + B.y)/2);
-  }
-  
-  void fixLines(HashMap<Node,Node> hm)
-  {
-    this.A = hm.get(A);
-    this.B = hm.get(B);
-  }
   
   Line(Line old)
   {
@@ -584,18 +397,39 @@ class Line
     B = b;
     weight = makeWeight();
   }
+  
   Line(Node a, Node b, float wght)
   {
     A = a;
     B = b;
     weight = wght;
   }
+  
+  float calc()
+  {
+   return B.val * weight; 
+  }
+  
+  void doDraw()
+  {
+    stroke(255 - (weight+1) * 128,   (weight+1) * 128, 0);
+    line(A.x, A.y, B.x, B.y);
+  }
+  
+  void fixLines(HashMap<Node,Node> hm)
+  {
+    this.A = hm.get(A);
+    this.B = hm.get(B);
+  }
+  
   void evolveLine()
   {
     weight = makeWeight();
-    /*boolean tmp = random(-1f, 1f) > 0;
-    if (tmp) weight *= random(0f, 0.2f);
-    else weight *= random(0f, -0.2f);*/
   }
   
+  void destroyLine()
+  {
+   A = null;
+   B = null;
+  }
 }
