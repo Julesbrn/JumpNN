@@ -9,6 +9,16 @@ https://processing.org/
 Simply opening the files with processing and pressing run is all that is required to run.
 This code was written using processing 3.3.7
 
+## Keyboard controls
+p - show/hide the neural networks (all of them, will be expensive)  
+q - raise framerate by 10 (100 if >= 300)  
+a - lower framerate by 10 (100 if >= 300)  
+e - toggle turbo mode  
+o - create new player mutated from top player  
+l - show/hide the obstacles and player  
+k - toggle a framerate of 1 fps  
+n - for new generation from the current living players  
+
 ## Visuals Explained  
 ![jumpNN.png](jumpNN.png)  
 A - The current number of living players  
